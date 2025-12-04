@@ -4,12 +4,14 @@ These are my solutions for the [Advent of Code 2025](https://adventofcode.com/20
 
 This year I'm using Go as the programming language.
 
-First, download the input and save it in the input folder, with the name `day<a|b|example>.txt`. `a|b|example` correspond to the Part 1, Part2 and example inputs respectively.
+First, download the input and save it in the input folder.
 
-To run the command for a given day, run `go run ./day# <part1|part2|example>`
+To run the command for a given day, run `go run ./day# <part1|part2> <filename>`
 
 [Day 1: Secret Entrance](./day1/)
 
 [Day 2: Gift Shop]()
 
 [Day 3: Lobby]()
+
+[Day 4: Printing Department](./day4/)

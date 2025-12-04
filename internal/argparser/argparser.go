@@ -1,33 +1,33 @@
 package argparser
 
 import (
-	"fmt"
 	"os"
 	"slices"
 )
 
-// ParseArgs checks the command line arguments and returns the corresponding filename
-// if the arguments are valid, otherwise, it prints usage and returns false
-func ParseArgs(day int, usage string) (string, bool) {
+const (
+	Invalid int = -1
+	Part1   int = 1
+	Part2   int = 2
+)
+
+// ParseArgs checks the command line arguments and returns the test type as an integer and the
+// intput filename. If the arguments are invalid, it returns -1 and "".
+func ParseArgs(day int) (int, string) {
 	args := os.Args[1:]
-	if len(args) != 1 {
-		fmt.Println(usage)
-		return "", false
+	if len(args) != 2 {
+		return Invalid, ""
 	}
-	validArgs := []string{"part1", "part2", "example"}
+	validArgs := []string{"part1", "part2"}
 	if !slices.Contains(validArgs, args[0]) {
-		fmt.Println(usage)
-		return "", false
+		return Invalid, ""
 	}
 	switch args[0] {
 	case "part1":
-		return fmt.Sprintf("day%da.txt", day), true
+		return Part1, args[1]
 	case "part2":
-		return fmt.Sprintf("day%db.txt", day), true
-	case "example":
-		return fmt.Sprintf("day%dexample.txt", day), true
+		return Part2, args[1]
 	default:
-		fmt.Println(usage)
-		return "", false
+		return Invalid, ""
 	}
 }

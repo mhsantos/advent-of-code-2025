@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
-	"strings"
 
 	"github.com/mhsantos/advent-of-code-2025/internal/argparser"
 	"github.com/mhsantos/advent-of-code-2025/internal/filereader"
 )
 
-const usage = "Usage: go run ./day1 <part1|part2|example>"
+const usage = "Usage: go run ./day1 <part1|part2> <input filename>"
 
 func main() {
 
-	filename, ok := argparser.ParseArgs(1, usage)
-	if !ok {
+	part, filename := argparser.ParseArgs(1)
+	if part == argparser.Invalid {
+		fmt.Println(usage)
 		return
 	}
 
 	lines := filereader.ReadInput(filename)
 
-	if strings.HasSuffix(filename, "a.txt") || strings.HasSuffix(filename, "example.txt") {
+	if part == argparser.Part1 {
 		part1(lines, true)
 	} else {
 		part1(lines, false)

@@ -1,15 +1,18 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/mhsantos/advent-of-code-2025/internal/argparser"
 	"github.com/mhsantos/advent-of-code-2025/internal/filereader"
 )
 
-const usage = "Usage: go run ./day4 <part1|part2|example>"
+const usage = "Usage: go run ./day4 <part1|part2> <input filename>"
 
 func main() {
-	filename, ok := argparser.ParseArgs(4, usage)
-	if !ok {
+	part, filename := argparser.ParseArgs(4)
+	if part == argparser.Invalid {
+		fmt.Println(usage)
 		return
 	}
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/mhsantos/advent-of-code-2025/internal/argparser"
 	"github.com/mhsantos/advent-of-code-2025/internal/filereader"
@@ -17,37 +18,40 @@ func main() {
 	}
 
 	lines := filereader.ReadInput(filename)
-	fmt.Println("Maximum joltage is:", findMaxJoltage(lines))
+	if part == argparser.Part1 {
+		fmt.Println("Maximum joltage is:", findMaxJoltage(lines, 2))
+		return
+	}
+	fmt.Println("Maximum joltage is:", findMaxJoltage(lines, 12))
 }
 
-func findMaxJoltage(lines []string) int {
+func findMaxJoltage(lines []string, decimalPlaces int) int {
 	maxJoltage := 0
 	for _, line := range lines {
-		maxFirstDigit := rune(line[0])
-		maxSecondDigit := '0'
-		index := 1
-		indexMaxDigit := 0
-		for index < len(line)-1 {
-			if rune(line[index]) > maxFirstDigit {
-				maxFirstDigit = rune(line[index])
-				indexMaxDigit = index
+		joltage := 0
+		currentDecimal := 0
+		currentDecimalMax := rune(0)
+		indexToStart := 0
+		for currentDecimal < decimalPlaces {
+			index := indexToStart
+			for index < len(line)-(decimalPlaces-1-currentDecimal) {
+				currentDigit := rune(line[index]) - '0'
+				if currentDigit > currentDecimalMax {
+					currentDecimalMax = currentDigit
+					indexToStart = index + 1
+				}
+				if currentDecimalMax == 9 {
+					indexToStart = index + 1
+					index++
+					break
+				}
+				index++
 			}
-			index++
-			if maxFirstDigit == '9' {
-				break
-			}
+			joltage += int(currentDecimalMax) * int(math.Pow(10, float64(decimalPlaces-currentDecimal-1)))
+			currentDecimal++
+			currentDecimalMax = 0
+			index = currentDecimal
 		}
-		index = indexMaxDigit + 1
-		for index < len(line) {
-			if rune(line[index]) > maxSecondDigit {
-				maxSecondDigit = rune(line[index])
-			}
-			index++
-			if maxSecondDigit == '9' {
-				break
-			}
-		}
-		joltage := int((maxFirstDigit-'0')*10 + (maxSecondDigit - '0'))
 		maxJoltage += joltage
 	}
 	return maxJoltage

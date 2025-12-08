@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -27,66 +26,47 @@ func main() {
 
 	lines := filereader.ReadInput(filename)
 	if part == argparser.Part1 {
-		intervals, ids, err := intervalsAndIDs(lines)
+		intervals, ids, err := processLines(lines)
 		if err != nil {
 			fmt.Println("Error processing lines:", err)
 			return
 		}
 		count := 0
 		for _, id := range ids {
-			if isIDInIntervals(id, intervals) {
+			if isInInterval(id, intervals) {
 				count++
 			}
 		}
 		fmt.Println("Number of IDs in intervals:", count)
 		return
-	}
-}
-
-func intervalsAndIDs(lines []string) ([][]int, []int, error) {
-	processingIntervals := true
-	ids := make([]int, 0)
-	intervals := make([][]int, 0)
-	for _, line := range lines {
-		if processingIntervals {
-			if line == "" {
-				processingIntervals = false
-				continue
-			}
-			interval := strings.Split(line, "-")
-			start, err := strconv.Atoi(interval[0])
-			if err != nil {
-				return nil, nil, err
-			}
-			end, err := strconv.Atoi(interval[1])
-			if err != nil {
-				return nil, nil, err
-			}
-			intervals = append(intervals, []int{start, end})
-
-		} else {
-			id, err := strconv.Atoi(line)
-			if err != nil {
-				return nil, nil, err
-			}
-			ids = append(ids, id)
+	} else {
+		intervals, _, err := processLines(lines)
+		if err != nil {
+			fmt.Println("Error processing lines:", err)
+			return
 		}
-	}
-	return intervals, ids, nil
-}
-
-func isIDInIntervals(id int, intervals [][]int) bool {
-	for _, interval := range intervals {
-		if id >= interval[0] && id <= interval[1] {
-			return true
+		count := 0
+		for i := 1; i < len(intervals); i++ {
+			if intervals[i].kind == 'E' && intervals[i-1].kind != 'S' {
+				fmt.Println("Unexpected E after E")
+				return
+			}
+			if intervals[i].kind == 'S' && intervals[i-1].kind != 'E' {
+				fmt.Println("Unexpected S after S")
+				return
+			}
+			if intervals[i].kind == 'E' {
+				count += intervals[i].id - intervals[i-1].id + 1
+			}
 		}
+		fmt.Println("Total number of fresh items:", count)
 	}
-	return false
 }
 
-// Alternative approach using maps and binary search
-func processLines(lines []string) (map[int]rune, []int, error) {
-	intervals := make(map[int]rune)
+// processLines gets the id ranges and inserts them in a map o interval in the folloing format:
+// 1:S,5:E,13:S,147:E,165:S,2030:E
+func processLines(lines []string) ([]interval, []int, error) {
+	intervals := make([]interval, 0)
 	ids := []int{}
 	processingIntervals := true
 	for _, line := range lines {
@@ -95,16 +75,16 @@ func processLines(lines []string) (map[int]rune, []int, error) {
 				processingIntervals = false
 				continue
 			}
-			interval := strings.Split(line, "-")
-			start, err := strconv.Atoi(interval[0])
+			startend := strings.Split(line, "-")
+			start, err := strconv.Atoi(startend[0])
 			if err != nil {
 				return nil, nil, err
 			}
-			intervals[start] = 'S'
-			end, err := strconv.Atoi(interval[1])
-			if _, ok := intervals[end]; !ok {
-				intervals[end] = 'E'
+			end, err := strconv.Atoi(startend[1])
+			if err != nil {
+				return nil, nil, err
 			}
+			insertInterval(&intervals, interval{start, 'S'}, interval{end, 'E'})
 		} else {
 			id, err := strconv.Atoi(line)
 			if err != nil {
@@ -116,35 +96,47 @@ func processLines(lines []string) (map[int]rune, []int, error) {
 	return intervals, ids, nil
 }
 
-// Alternative approach using maps and binary search
-func intervalAsSlice(intervalMap map[int]rune) []interval {
-	sortedIntervals := make([]interval, 0)
-	intervals := make([]interval, 0)
-	for id, kind := range intervalMap {
-		sortedIntervals = append(sortedIntervals, interval{id: id, kind: kind})
-	}
-	sort.Slice(sortedIntervals, func(i, j int) bool {
-		return sortedIntervals[i].id < sortedIntervals[j].id
-	})
-	prevKind := 'X'
-	for _, interv := range sortedIntervals {
-		if interv.kind == 'S' && prevKind != 'S' {
-			intervals = append(intervals, interv)
-			prevKind = 'S'
-		}
-		if interv.kind == 'E' {
-			if prevKind == 'E' {
-				intervals = append(intervals[:len(intervals)-1], interv)
-			} else {
-				intervals = append(intervals, interv)
+// insertInteval uses binary search to figure where to put the start and end values.
+// it also takes care of overlapping intervals by seeing a position where the interval is suppose
+// to be inserted is inside or outside of an existing interval.
+func insertInterval(intervals *[]interval, start interval, end interval) {
+	if len(*intervals) == 0 {
+		*intervals = append(*intervals, start, end)
+	} else {
+		newIntervals := make([]interval, 0)
+		startPos, _ := slices.BinarySearchFunc(*intervals, start.id, func(i interval, id int) int {
+			return i.id - id
+		})
+		if startPos > 0 {
+			newIntervals = append(newIntervals, (*intervals)[:startPos]...)
+			if (*intervals)[startPos-1].kind == 'E' {
+				newIntervals = append(newIntervals, start)
 			}
-			prevKind = 'E'
+		} else {
+			newIntervals = append(newIntervals, start)
 		}
+		endPos, ok := slices.BinarySearchFunc(*intervals, end.id, func(i interval, id int) int {
+			return i.id - id
+		})
+		if endPos < len(*intervals) {
+			if (*intervals)[endPos].kind == 'E' {
+				newIntervals = append(newIntervals, (*intervals)[endPos:]...)
+			} else { // it's S
+				if ok {
+					newIntervals = append(newIntervals, (*intervals)[endPos+1:]...)
+				} else {
+					newIntervals = append(newIntervals, end)
+					newIntervals = append(newIntervals, (*intervals)[endPos:]...)
+				}
+			}
+		} else {
+			newIntervals = append(newIntervals, end)
+		}
+		*intervals = newIntervals
 	}
-	return intervals
 }
 
-// Alternative approach using maps and binary search
+// isInInterval uses binary search to figure if a value is inside the ranges of valid ids
 func isInInterval(id int, intervals []interval) bool {
 	intervalPos, ok := slices.BinarySearchFunc(intervals, id, func(i interval, id int) int {
 		return i.id - id

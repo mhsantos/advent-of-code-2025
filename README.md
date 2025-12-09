@@ -17,3 +17,5 @@ To run the command for a given day, run `go run ./day# <part1|part2> <filename>`
 [Day 4: Printing Department](./day4/)
 
 [Day 5: Cafeteria](./day5/)
+
+[Day 6: Trash Compactor](./day6/)

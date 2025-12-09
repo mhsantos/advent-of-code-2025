@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -24,12 +25,48 @@ func main() {
 	}
 
 	lines := filereader.ReadInput(filename)
+	var operations []operation
+	var err error
 	if part == argparser.Part1 {
-		operations, err := processLines(lines)
-		if err == nil {
-			fmt.Println("Grand total: ", runAllOperations(operations))
+		operations, err = processLines(lines)
+		if err != nil {
+			fmt.Println("Error parsing input:", err)
+			return
+		}
+	} else {
+		operations = processLinesPart2(lines)
+	}
+	fmt.Println("Grand total: ", runAllOperations(operations))
+}
+
+func processLinesPart2(lines []string) []operation {
+	operations := make([]operation, 0)
+	var op operation
+	for idx, val := range lines[len(lines)-1] {
+		if val != ' ' {
+			if idx > 0 {
+				operations = append(operations, op)
+			}
+			op = operation{}
+			op.operator = val
+		}
+		decimalPlace := 0
+		operand := 0
+		for i := len(lines) - 2; i > -1; i-- {
+			if len(lines[i]) > idx {
+				if lines[i][idx] != ' ' {
+					digit := int(lines[i][idx] - '0')
+					operand += digit * int(math.Pow(float64(10), float64(decimalPlace)))
+					decimalPlace++
+				}
+			}
+		}
+		if operand > 0 {
+			op.elements = append(op.elements, operand)
 		}
 	}
+	operations = append(operations, op)
+	return operations
 }
 
 func processLines(lines []string) ([]operation, error) {

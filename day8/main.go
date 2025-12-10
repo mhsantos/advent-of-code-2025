@@ -37,9 +37,18 @@ func main() {
 			return
 		}
 		distances := shortestDistances(boxes)
-		circuits, _ := connectBoxes(distances, 1000)
+		circuits, _, _ := connectBoxes(distances, 1000, 1000)
 		prod3Largest := prodNLargest(circuits, 3)
 		fmt.Println("3 largest multiplied:", prod3Largest)
+	} else {
+		boxes, err := getBoxes(lines)
+		if err != nil {
+			return
+		}
+		distances := shortestDistances(boxes)
+		_, _, lastTwo := connectBoxes(distances, len(boxes), -1)
+		lastTwoX := boxes[lastTwo[0]].x * boxes[lastTwo[1]].x
+		fmt.Println("Last two connected x multiplied", lastTwoX)
 	}
 }
 
@@ -67,6 +76,8 @@ func getBoxes(lines []string) ([]box, error) {
 	return boxes, nil
 }
 
+// shortestDistances returns an n x n size slice of boxDistance with the distance between
+// each box to all other boxes
 func shortestDistances(boxes []box) []boxDistance {
 	distances := make([]boxDistance, 0, len(boxes))
 	for a := 0; a < len(boxes); a++ {
@@ -101,44 +112,60 @@ func shortestDistances(boxes []box) []boxDistance {
 	return distances
 }
 
-// connectBoxes connects the n closest pairs of boxes and returns a map with circuit and boxes and
-// a second map with the box id and the group it belongs to
-func connectBoxes(distances []boxDistance, n int) (map[string][]box, map[int]string) {
+// connectBoxes connects boxes into circuits.
+// When the n parameter is informed, it connects n boxes together a map from circuit to boxes and a second map from box to circuit
+// When n <= 0, it joins boxes together until there's only one circuit. It still returns the maps described above, plus a 2 positions array
+// with the ids of the last 2 boxes connected
+func connectBoxes(distances []boxDistance, nBoxes, n int) (map[string][]box, map[int]string, [2]int) {
 	circuits := make(map[string][]box, 0)
 	boxCircuit := make(map[int]string, 0)
+	var lastTwo [2]int
 
 	circuitIndex := 0
-	for i := range n {
+	i := 0
+outer:
+	for {
+		if n > 0 && i == n {
+			break
+		}
+		if len(circuits) == 1 {
+			for _, v := range circuits {
+				if len(v) == nBoxes {
+					break outer
+				}
+				break
+			}
+		}
 		distance := distances[i]
+		i++
 		circuitA, okA := boxCircuit[distance.boxA.id]
 		circuitB, okB := boxCircuit[distance.boxB.id]
 		if okA {
 			if okB { // both boxes are on their circuits
 				if circuitA == circuitB { // both boxes are on the same circuit. Nothing to be done
-					//					fmt.Println("both boxes on the same circuit", distance.boxA.id, distance.boxB.id)
 					continue
 				}
 				// boxes are on different circuits.
 				// Merging both circuits by moving members of circuitB to circuitA
-				//				fmt.Println("merging boxA to boxB", distance.boxA.id, distance.boxB.id)
 				boxesB := circuits[circuitB]
 				for _, boxB := range boxesB {
 					boxCircuit[boxB.id] = circuitA
 					circuits[circuitA] = append(circuits[circuitA], boxB)
 				}
+				lastTwo[0] = distance.boxA.id
+				lastTwo[1] = distance.boxB.id
 				delete(circuits, circuitB)
 			} else { // boxB is not in any circuit. Will add it to boxA's circuit
-				//				fmt.Println("adding boxB to boxA", distance.boxA.id, distance.boxB.id)
 				boxCircuit[distance.boxB.id] = circuitA
 				circuits[circuitA] = append(circuits[circuitA], distance.boxB)
+				lastTwo[0] = distance.boxA.id
+				lastTwo[1] = distance.boxB.id
 			}
 		} else {
 			if okB { // boxA is not in any circuit. Will add it to boxB's circuit
-				//				fmt.Println("adding boxA to boxB", distance.boxA.id, distance.boxB.id)
 				boxCircuit[distance.boxA.id] = circuitB
 				circuits[circuitB] = append(circuits[circuitB], distance.boxA)
 			} else { // None of the boxes are in any circuit. Will create a circuit and add them both to it
-				//				fmt.Println("crating circuit and adding", distance.boxA.id, distance.boxB.id)
 				circuitName := fmt.Sprintf("circuit%d", circuitIndex)
 				members := make([]box, 0, 2)
 				members = append(members, distance.boxA)
@@ -148,9 +175,11 @@ func connectBoxes(distances []boxDistance, n int) (map[string][]box, map[int]str
 				boxCircuit[distance.boxB.id] = circuitName
 				circuitIndex++
 			}
+			lastTwo[0] = distance.boxA.id
+			lastTwo[1] = distance.boxB.id
 		}
 	}
-	return circuits, boxCircuit
+	return circuits, boxCircuit, lastTwo
 }
 
 func prodNLargest(circuits map[string][]box, n int) int {

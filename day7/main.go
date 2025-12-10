@@ -19,8 +19,19 @@ func main() {
 	lines := filereader.ReadInput(filename)
 	if part == argparser.Part1 {
 		fmt.Println("Beam splits", countBeamSplits(lines, false))
+	} else {
+		fmt.Println("Possible paths", traverseManifold(findStartIndex(lines[0]), lines))
 	}
 
+}
+
+func findStartIndex(line string) int {
+	for idx, char := range line {
+		if char == 'S' {
+			return idx
+		}
+	}
+	return -1
 }
 
 func countBeamSplits(lines []string, print bool) int {
@@ -60,6 +71,31 @@ func countBeamSplits(lines []string, print bool) int {
 		}
 	}
 	return count
+}
+
+func traverseManifold(col int, lines []string) int {
+	row := 2
+	cols := len(lines[0])
+	counter := make([]int, len(lines[0]))
+	counter[col] = 1
+	for row < len(lines) {
+		newCounter := make([]int, cols)
+		for col := range cols {
+			if lines[row][col] == '^' {
+				newCounter[col-1] += counter[col]
+				newCounter[col+1] += counter[col]
+			} else {
+				newCounter[col] += counter[col]
+			}
+		}
+		counter = newCounter
+		row += 2
+	}
+	total := 0
+	for _, count := range counter {
+		total += count
+	}
+	return total
 }
 
 func printAllLevels(levels [][]rune) {

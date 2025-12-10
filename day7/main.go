@@ -7,7 +7,7 @@ import (
 	"github.com/mhsantos/advent-of-code-2025/internal/filereader"
 )
 
-const usage = "Usage: go run ./day6 <part1|part2> <input filename>"
+const usage = "Usage: go run ./day7 <part1|part2> <input filename>"
 
 func main() {
 	part, filename := argparser.ParseArgs(2)
